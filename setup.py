@@ -10,4 +10,7 @@ setup(
     license='LICENSE.txt',
     description='Simple markov chain implementation',
     long_description=open('README.md').read(),
+    install_requires=[
+    	'msgpack-python'
+    ],
 )

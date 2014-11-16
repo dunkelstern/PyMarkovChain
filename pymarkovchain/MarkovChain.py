@@ -1,9 +1,6 @@
 from __future__ import division
-# use cPickle when using python2 for better performance
-try:
-    import cPickle as pickle
-except ImportError:
-    import pickle
+import msgpack
+import gc
 import logging
 import os
 import random
@@ -14,7 +11,7 @@ class StringContinuationImpossibleError(Exception):
     pass
 
 # {words: {word: prob}}
-# We have to define these as separate functions so they can be pickled.
+# We have to define these as separate functions so they can be stored.
 def _db_factory():
     return defaultdict(_one_dict)
 
@@ -49,7 +46,10 @@ class MarkovChain(object):
             self.dbFilePath = os.path.join(os.path.dirname(__file__), "markovdb")
         try:
             with open(self.dbFilePath, 'rb') as dbfile:
-                self.db = pickle.load(dbfile)
+                gc.disable()
+                data = dbfile.read()
+                self.db = msgpack.unpackb(data, use_list=False)
+                gc.enable()
         except (IOError, ValueError):
             logging.warn('Database file corrupt or not found, using empty database')
             self.db = _db_factory()
@@ -91,7 +91,7 @@ class MarkovChain(object):
     def dumpdb(self):
         try:
             with open(self.dbFilePath, 'wb') as dbfile:
-                pickle.dump(self.db, dbfile)
+                dbfile.write(msgpack.packb(self.db))
             # It looks like db was written successfully
             return True
         except IOError:
